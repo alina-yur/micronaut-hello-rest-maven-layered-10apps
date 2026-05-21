@@ -1,0 +1,23 @@
+# base layer config that contains JDK modules used by Micronaut
+base-layer.nil
+digest-ignore
+module=java.base
+module=java.desktop
+module=java.logging
+module=java.management
+module=java.naming
+module=java.net.http
+module=java.sql
+module=jdk.unsupported
+# Micronaut, Netty, logging, serialization, and reactive support.
+package=io.micronaut.*
+package=io.netty.*
+package=jakarta.*
+package=com.fasterxml.jackson.*
+package=org.slf4j.*
+package=ch.qos.logback.*
+package=reactor.*
+package=org.reactivestreams.*
+# Reflection array helpers can otherwise be discovered first in the app layer.
+package=java.lang.reflect
+
