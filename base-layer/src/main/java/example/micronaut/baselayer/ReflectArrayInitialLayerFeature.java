@@ -2,6 +2,9 @@ package example.micronaut.baselayer;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 import org.graalvm.nativeimage.hosted.Feature;
 
@@ -24,6 +27,8 @@ public final class ReflectArrayInitialLayerFeature implements Feature {
     @Override
     public void beforeAnalysis(BeforeAnalysisAccess access) {
         access.registerAsUsed(Array.class);
+        access.registerAsUsed(Date.class);
+        access.registerAsUsed(Time.class);
+        access.registerAsUsed(Timestamp.class);
     }
 }
-

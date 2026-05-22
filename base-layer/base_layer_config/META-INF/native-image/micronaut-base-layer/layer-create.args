@@ -4,7 +4,6 @@ digest-ignore
 module=java.base
 module=java.desktop
 module=java.logging
-module=java.management
 module=java.naming
 module=java.net.http
 module=java.sql
@@ -18,6 +17,7 @@ package=org.slf4j.*
 package=ch.qos.logback.*
 package=reactor.*
 package=org.reactivestreams.*
+# Pin the narrow management package seen late without promoting all JMX/RMI support.
+package=javax.management.modelmbean
 # Reflection array helpers can otherwise be discovered first in the app layer.
 package=java.lang.reflect
-

@@ -123,34 +123,6 @@
         </profile>
 
         <profile>
-            <id>standalone</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.graalvm.buildtools</groupId>
-                        <artifactId>native-maven-plugin</artifactId>
-                        <version>${native.maven.plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>compile-no-fork</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <imageName>${app.image.name}-standalone</imageName>
-                            <mainClass>${app.main.class}</mainClass>
-                            <buildArgs combine.children="append">
-                                <buildArg>--verbose</buildArg>
-                            </buildArgs>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
             <id>app-layer</id>
             <dependencies>
                 <dependency>
@@ -161,6 +133,18 @@
             </dependencies>
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-shade</id>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
@@ -177,18 +161,20 @@
                             <imageName>${app.image.name}</imageName>
                             <mainClass>${app.main.class}</mainClass>
                             <buildArgs combine.children="append">
-                                <buildArg>--verbose</buildArg>
                                 <buildArg>-H:+UnlockExperimentalVMOptions</buildArg>
+                                <buildArg>--add-exports=java.base/jdk.internal.misc=org.graalvm.nativeimage.guest</buildArg>
+                                <buildArg>--add-exports=org.graalvm.nativeimage.base/com.oracle.svm.sdk.staging.hosted.layeredimage=ALL-UNNAMED</buildArg>
+                                <buildArg>--add-exports=org.graalvm.nativeimage.base/com.oracle.svm.sdk.staging.layeredimage=ALL-UNNAMED</buildArg>
                                 <buildArg>-H:LayerUse=../base-layer/target/base-layer.nil</buildArg>
                                 <buildArg>-H:LinkerRPath=$ORIGIN</buildArg>
                                 <buildArg>-H:+RelativeCodePointers</buildArg>
-                                <buildArg>--initialize-at-run-time=java.lang.VirtualThread</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.buffer</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.channel</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.handler</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.resolver</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.util</buildArg>
                                 <buildArg>--initialize-at-run-time=io.netty.bootstrap</buildArg>
+                                <buildArg>--initialize-at-run-time=java.sql.Date,java.sql.Time,java.sql.Timestamp</buildArg>
                                 <buildArg>-H:-UnlockExperimentalVMOptions</buildArg>
                             </buildArgs>
                         </configuration>

@@ -20,11 +20,18 @@
         <jdk.version>25</jdk.version>
         <release.version>25</release.version>
         <native.maven.plugin.version>0.11.2</native.maven.plugin.version>
+        <graalvm.sdk.version>25.0.0</graalvm.sdk.version>
         <micronaut.version>4.10.8</micronaut.version>
         <micronaut.runtime>netty</micronaut.runtime>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.graalvm.sdk</groupId>
+            <artifactId>nativeimage</artifactId>
+            <version>${graalvm.sdk.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-runtime</artifactId>
@@ -75,4 +82,3 @@
         </plugins>
     </build>
 </project>
-
