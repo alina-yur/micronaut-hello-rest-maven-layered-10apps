@@ -93,7 +93,7 @@ Custom port:
 APP=swiss PORT=8090 ./run.sh
 ```
 
-The script prints RSS/PSS samples while the app is running.
+The script prints RSS/USS/PSS samples while the app is running.
 
 ## Run All Apps
 
@@ -101,7 +101,7 @@ The script prints RSS/PSS samples while the app is running.
 ./run-all.sh
 ```
 
-This starts all 10 executables, waits for their endpoints, and prints live RSS/PSS totals.
+This starts all 10 executables, waits for their endpoints, and prints live RSS/USS/PSS totals.
 
 ## Verify
 
@@ -128,4 +128,3 @@ cd micronaut-application-layer
 ```
 
 The test path directly verifies all 10 greeting classes without starting a Micronaut context.
-

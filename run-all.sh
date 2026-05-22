@@ -120,26 +120,26 @@ echo "Memory usage:"
 
 while true; do
     total_rss=0
+    total_uss=0
     total_pss=0
 
-    printf "  %-16s %8s %8s %s\n" "APP" "RSS" "PSS" "PID"
+    printf "  %-16s %8s %8s %8s %s\n" "APP" "RSS" "USS" "PSS" "PID"
     for i in "${!PIDS[@]}"; do
         pid="${PIDS[$i]}"
         binary_name="${BINARY_NAMES[$i]}"
 
         if kill -0 "$pid" 2>/dev/null; then
-            rss="$(tree_rss_kb "$pid")"
-            pss="$(tree_pss_kb "$pid")"
-            printf "  %-16s %5s KB %5s KB  (PID %s)\n" "$binary_name" "$rss" "$pss" "$pid"
+            read -r rss uss pss < <(tree_memory_kb "$pid")
+            printf "  %-16s %5s KB %5s KB %5s KB  (PID %s)\n" "$binary_name" "$rss" "$uss" "$pss" "$pid"
             total_rss=$((total_rss + rss))
+            total_uss=$((total_uss + uss))
             total_pss=$((total_pss + pss))
         else
-            printf "  %-16s %8s %8s  (%s)\n" "$binary_name" "dead" "dead" "$pid"
+            printf "  %-16s %8s %8s %8s  (%s)\n" "$binary_name" "dead" "dead" "dead" "$pid"
         fi
     done
 
-    printf "  %-16s %5s KB %5s KB\n" "TOTAL" "$total_rss" "$total_pss"
+    printf "  %-16s %5s KB %5s KB %5s KB\n" "TOTAL" "$total_rss" "$total_uss" "$total_pss"
     echo
     sleep "$MEASURE_INTERVAL"
 done
-

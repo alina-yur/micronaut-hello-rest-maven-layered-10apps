@@ -79,9 +79,8 @@ app_pid=$!
 
 if [[ "$MEASURE_MEMORY" == "1" ]]; then
     echo
-    echo "==> RSS/PSS measurements every ${MEASURE_INTERVAL}s"
+    echo "==> RSS/USS/PSS measurements every ${MEASURE_INTERVAL}s"
     monitor_process_tree "$IMAGE_NAME" "$app_pid" "$MEASURE_INTERVAL"
 else
     wait "$app_pid"
 fi
-
