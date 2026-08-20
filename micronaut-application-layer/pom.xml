@@ -123,6 +123,52 @@
         </profile>
 
         <profile>
+            <id>standalone</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-shade</id>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>${app.image.name}</imageName>
+                            <mainClass>${app.main.class}</mainClass>
+                            <buildArgs combine.children="append">
+                                <buildArg>--initialize-at-run-time=io.netty.buffer</buildArg>
+                                <buildArg>--initialize-at-run-time=io.netty.channel</buildArg>
+                                <buildArg>--initialize-at-run-time=io.netty.handler</buildArg>
+                                <buildArg>--initialize-at-run-time=io.netty.resolver</buildArg>
+                                <buildArg>--initialize-at-run-time=io.netty.util</buildArg>
+                                <buildArg>--initialize-at-run-time=io.netty.bootstrap</buildArg>
+                                <buildArg>--initialize-at-run-time=java.sql.Date,java.sql.Time,java.sql.Timestamp</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
             <id>app-layer</id>
             <dependencies>
                 <dependency>

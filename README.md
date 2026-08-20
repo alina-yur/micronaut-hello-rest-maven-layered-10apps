@@ -9,8 +9,10 @@ base-layer/                  # builds base-layer.nil and libjavabaselayer.so
 micronaut-application-layer/  # builds one native executable per language
 scripts/                     # shared app and memory helpers
 build-all-apps.sh
+build-all-standalone.sh
 run.sh
 run-all.sh
+run-all-standalone.sh
 ```
 
 Each executable exposes `/` and its own `/hello/<language>` endpoint:
@@ -72,6 +74,41 @@ micronaut-application-layer/target/hello-english
 micronaut-application-layer/target/hello-french
 ...
 ```
+
+## Standalone Comparison
+
+Build one non-layered standalone native Micronaut executable per language:
+
+```bash
+./build-all-standalone.sh
+```
+
+The 10 executables are written to `micronaut-application-layer/target/standalone/`.
+
+Run the 10 language-specific standalone executables and measure their combined
+RSS/USS/PSS usage. Build them first with `./build-all-standalone.sh`:
+
+```bash
+./run-all-standalone.sh
+```
+
+Standalone instances use ports `8180` through `8189`, so both this runner and
+`./run-all.sh` can be used at the same time. Set `PORT_BASE` to choose another
+starting port, or set `MEASURE_INTERVAL` to change the measurement interval.
+
+To create and run 100 executable files—10 copies of each language app—use:
+
+```bash
+COPIES_PER_APP=10 ./build-all-apps.sh
+COPIES_PER_APP=10 ./run-all.sh
+
+COPIES_PER_APP=10 ./build-all-standalone.sh
+COPIES_PER_APP=10 ./run-all-standalone.sh
+```
+
+The copies are named `hello-english-1` through `hello-english-10`, and
+similarly for the other languages. Layered ports are `8080` through `8179`;
+standalone ports are `8180` through `8279`.
 
 ## Run One App
 
