@@ -3,8 +3,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COPIES_PER_APP="${COPIES_PER_APP:-1}"
 
 source "$ROOT/scripts/app-config.sh"
+
+validate_copies_per_app "$COPIES_PER_APP"
 
 TARGET_DIR="$ROOT/micronaut-application-layer/target"
 OUTPUT_DIR="$TARGET_DIR/standalone"
@@ -28,7 +31,10 @@ for app in "${LANGUAGES[@]}"; do
             clean package
     )
 
-    cp "$build_dir/$image_name" "$OUTPUT_DIR/$image_name"
+    for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
+        output_name="$(copy_name_for_image "$image_name" "$copy" "$COPIES_PER_APP")"
+        cp "$build_dir/$image_name" "$OUTPUT_DIR/$output_name"
+    done
 done
 
 echo

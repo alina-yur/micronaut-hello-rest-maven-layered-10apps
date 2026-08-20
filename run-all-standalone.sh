@@ -6,9 +6,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="$ROOT/micronaut-application-layer/target/standalone"
 MEASURE_INTERVAL="${MEASURE_INTERVAL:-10}"
 PORT_BASE="${PORT_BASE:-8180}"
+COPIES_PER_APP="${COPIES_PER_APP:-1}"
 
 source "$ROOT/scripts/app-config.sh"
 source "$ROOT/scripts/memory-lib.sh"
+
+validate_copies_per_app "$COPIES_PER_APP"
 
 PIDS=()
 LOG_FILES=()
@@ -29,11 +32,14 @@ require_runtime_artifacts() {
 
     for app in "${LANGUAGES[@]}"; do
         image_name="$(image_name_for_app "$app")"
-        if [[ ! -x "$TARGET_DIR/$image_name" ]]; then
-            echo "Missing standalone app binary: $TARGET_DIR/$image_name" >&2
-            echo "Build the standalone apps first with ./build-all-standalone.sh" >&2
-            exit 1
-        fi
+        for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
+            binary_name="$(copy_name_for_image "$image_name" "$copy" "$COPIES_PER_APP")"
+            if [[ ! -x "$TARGET_DIR/$binary_name" ]]; then
+                echo "Missing standalone app binary: $TARGET_DIR/$binary_name" >&2
+                echo "Build the standalone apps first with COPIES_PER_APP=$COPIES_PER_APP ./build-all-standalone.sh" >&2
+                exit 1
+            fi
+        done
     done
 }
 
@@ -60,52 +66,62 @@ trap cleanup EXIT INT TERM
 
 require_runtime_artifacts
 
-echo "=== Starting 10 standalone Micronaut app instances ==="
+TOTAL_APPS=$((${#LANGUAGES[@]} * COPIES_PER_APP))
+echo "=== Starting $TOTAL_APPS standalone Micronaut app instances ==="
 echo
 
 for i in "${!LANGUAGES[@]}"; do
     lang="${LANGUAGES[$i]}"
-    port=$((PORT_BASE + i))
-    binary_name="$(image_name_for_app "$lang")"
-    log_file="$(mktemp)"
+    image_name="$(image_name_for_app "$lang")"
 
-    "$TARGET_DIR/$binary_name" "--micronaut.server.port=$port" >"$log_file" 2>&1 &
-    pid=$!
+    for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
+        binary_name="$(copy_name_for_image "$image_name" "$copy" "$COPIES_PER_APP")"
+        log_file="$(mktemp)"
 
-    PIDS+=("$pid")
-    LOG_FILES+=("$log_file")
-    BINARY_NAMES+=("$binary_name")
-    echo "  Started $binary_name on port $port (PID $pid)"
+        "$TARGET_DIR/$binary_name" "--micronaut.server.port=$port" >"$log_file" 2>&1 &
+        pid=$!
+
+        PIDS+=("$pid")
+        LOG_FILES+=("$log_file")
+        BINARY_NAMES+=("$binary_name")
+        echo "  Started $binary_name on port $port (PID $pid)"
+    done
 done
 
 echo
 echo "Waiting for all endpoints to come up..."
 for i in "${!LANGUAGES[@]}"; do
     lang="${LANGUAGES[$i]}"
-    port=$((PORT_BASE + i))
-    ok=0
+    for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
+        log_index=$((i * COPIES_PER_APP + copy - 1))
+        ok=0
 
-    for _ in {1..60}; do
-        if curl -fsS "http://127.0.0.1:$port/hello/$lang" >/dev/null 2>&1; then
-            ok=1
-            break
+        for _ in {1..60}; do
+            if curl -fsS "http://127.0.0.1:$port/hello/$lang" >/dev/null 2>&1; then
+                ok=1
+                break
+            fi
+            sleep 1
+        done
+
+        if [[ "$ok" -ne 1 ]]; then
+            echo "ERROR: standalone $lang copy $copy on port $port did not start cleanly." >&2
+            tail -n 40 "${LOG_FILES[$log_index]}" >&2 || true
+            exit 1
         fi
-        sleep 1
     done
-
-    if [[ "$ok" -ne 1 ]]; then
-        echo "ERROR: standalone $lang on port $port did not start cleanly." >&2
-        tail -n 40 "${LOG_FILES[$i]}" >&2 || true
-        exit 1
-    fi
 done
 
 echo
-echo "All 10 standalone app instances are running. Endpoints:"
+echo "All $TOTAL_APPS standalone app instances are running. Endpoints:"
 for i in "${!LANGUAGES[@]}"; do
     lang="${LANGUAGES[$i]}"
-    port=$((PORT_BASE + i))
-    echo "  curl http://127.0.0.1:$port/hello/$lang"
+    for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
+        echo "  curl http://127.0.0.1:$port/hello/$lang"
+    done
 done
 
 echo

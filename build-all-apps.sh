@@ -3,9 +3,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COPIES_PER_APP="${COPIES_PER_APP:-1}"
 
 source "$ROOT/scripts/app-config.sh"
 
+validate_copies_per_app "$COPIES_PER_APP"
 ensure_base_layer_target "$ROOT"
 
 for app in "${LANGUAGES[@]}"; do
@@ -24,10 +26,9 @@ for app in "${LANGUAGES[@]}"; do
             package
     )
 
-    publish_application_artifacts "$ROOT" "$image_name"
+    publish_application_artifacts "$ROOT" "$image_name" "$COPIES_PER_APP"
 done
 
 echo
 echo "==> Built layered Micronaut apps"
 ls -lh "$ROOT/micronaut-application-layer/target"/hello-* "$ROOT/micronaut-application-layer/target/libjavabaselayer.so"
-

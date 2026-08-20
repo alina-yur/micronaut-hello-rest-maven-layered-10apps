@@ -68,6 +68,26 @@ image_name_for_app() {
     echo "${IMAGE_NAMES[$index]}"
 }
 
+copy_name_for_image() {
+    local image_name="$1"
+    local copy="$2"
+    local copies="$3"
+
+    if [[ "$copies" -eq 1 ]]; then
+        echo "$image_name"
+    else
+        echo "$image_name-$copy"
+    fi
+}
+
+validate_copies_per_app() {
+    local copies="$1"
+    if ! [[ "$copies" =~ ^[1-9][0-9]*$ ]]; then
+        echo "COPIES_PER_APP must be a positive integer: $copies" >&2
+        return 1
+    fi
+}
+
 port_for_app() {
     local index
     index="$(app_index "$1")" || return 1
@@ -98,10 +118,16 @@ ensure_base_layer_target() {
 publish_application_artifacts() {
     local root="$1"
     local image_name="$2"
+    local copies="${3:-1}"
     local app_target="$root/micronaut-application-layer/target"
     local work_dir="$app_target/$image_name-build"
+    local copy
+    local output_name
 
     mkdir -p "$app_target"
-    cp "$work_dir/$image_name" "$app_target/$image_name"
+    for ((copy = 1; copy <= copies; copy++)); do
+        output_name="$(copy_name_for_image "$image_name" "$copy" "$copies")"
+        cp "$work_dir/$image_name" "$app_target/$output_name"
+    done
     cp "$root/base-layer/target/libjavabaselayer.so" "$app_target/libjavabaselayer.so"
 }
