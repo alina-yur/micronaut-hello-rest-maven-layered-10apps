@@ -105,4 +105,3 @@ publish_application_artifacts() {
     cp "$work_dir/$image_name" "$app_target/$image_name"
     cp "$root/base-layer/target/libjavabaselayer.so" "$app_target/libjavabaselayer.so"
 }
-
