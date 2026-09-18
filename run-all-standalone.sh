@@ -3,8 +3,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_DIR="$ROOT/micronaut-application-layer/target"
+TARGET_DIR="$ROOT/micronaut-application-layer/target/standalone"
 MEASURE_INTERVAL="${MEASURE_INTERVAL:-10}"
+PORT_BASE="${PORT_BASE:-8180}"
 COPIES_PER_APP="${COPIES_PER_APP:-1}"
 
 source "$ROOT/scripts/app-config.sh"
@@ -24,14 +25,8 @@ require_runtime_artifacts() {
     fi
 
     if [[ ! -d "$TARGET_DIR" ]]; then
-        echo "Missing target directory: $TARGET_DIR" >&2
-        echo "Build the layered apps first with ./build-all-apps.sh" >&2
-        exit 1
-    fi
-
-    if [[ ! -f "$TARGET_DIR/libjavabaselayer.so" ]]; then
-        echo "Missing shared base layer: $TARGET_DIR/libjavabaselayer.so" >&2
-        echo "Build the layered apps first with ./build-all-apps.sh" >&2
+        echo "Missing standalone target directory: $TARGET_DIR" >&2
+        echo "Build the standalone apps first with ./build-all-standalone.sh" >&2
         exit 1
     fi
 
@@ -40,8 +35,8 @@ require_runtime_artifacts() {
         for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
             binary_name="$(copy_name_for_image "$image_name" "$copy" "$COPIES_PER_APP")"
             if [[ ! -x "$TARGET_DIR/$binary_name" ]]; then
-                echo "Missing layered app binary: $TARGET_DIR/$binary_name" >&2
-                echo "Build the layered apps first with COPIES_PER_APP=$COPIES_PER_APP ./build-all-apps.sh" >&2
+                echo "Missing standalone app binary: $TARGET_DIR/$binary_name" >&2
+                echo "Build the standalone apps first with COPIES_PER_APP=$COPIES_PER_APP ./build-all-standalone.sh" >&2
                 exit 1
             fi
         done
@@ -55,7 +50,7 @@ cleanup() {
     CLEANED_UP=1
 
     echo
-    echo "Stopping all apps..."
+    echo "Stopping all standalone apps..."
     for pid in "${PIDS[@]:-}"; do
         kill "$pid" 2>/dev/null || true
     done
@@ -71,10 +66,8 @@ trap cleanup EXIT INT TERM
 
 require_runtime_artifacts
 
-export LD_LIBRARY_PATH="$TARGET_DIR:${LD_LIBRARY_PATH:-}"
-
 TOTAL_APPS=$((${#LANGUAGES[@]} * COPIES_PER_APP))
-echo "=== Starting $TOTAL_APPS Micronaut app instances sharing libjavabaselayer.so ==="
+echo "=== Starting $TOTAL_APPS standalone Micronaut app instances ==="
 echo
 
 for i in "${!LANGUAGES[@]}"; do
@@ -82,7 +75,7 @@ for i in "${!LANGUAGES[@]}"; do
     image_name="$(image_name_for_app "$lang")"
 
     for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
-        port=$((PORTS[$i] + (copy - 1) * ${#LANGUAGES[@]}))
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
         binary_name="$(copy_name_for_image "$image_name" "$copy" "$COPIES_PER_APP")"
         log_file="$(mktemp)"
 
@@ -101,7 +94,7 @@ echo "Waiting for all endpoints to come up..."
 for i in "${!LANGUAGES[@]}"; do
     lang="${LANGUAGES[$i]}"
     for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
-        port=$((PORTS[$i] + (copy - 1) * ${#LANGUAGES[@]}))
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
         log_index=$((i * COPIES_PER_APP + copy - 1))
         ok=0
 
@@ -114,7 +107,7 @@ for i in "${!LANGUAGES[@]}"; do
         done
 
         if [[ "$ok" -ne 1 ]]; then
-            echo "ERROR: hello-$lang copy $copy on port $port did not start cleanly." >&2
+            echo "ERROR: standalone $lang copy $copy on port $port did not start cleanly." >&2
             tail -n 40 "${LOG_FILES[$log_index]}" >&2 || true
             exit 1
         fi
@@ -122,11 +115,11 @@ for i in "${!LANGUAGES[@]}"; do
 done
 
 echo
-echo "All $TOTAL_APPS app instances are running. Endpoints:"
+echo "All $TOTAL_APPS standalone app instances are running. Endpoints:"
 for i in "${!LANGUAGES[@]}"; do
     lang="${LANGUAGES[$i]}"
     for ((copy = 1; copy <= COPIES_PER_APP; copy++)); do
-        port=$((PORTS[$i] + (copy - 1) * ${#LANGUAGES[@]}))
+        port=$((PORT_BASE + (copy - 1) * ${#LANGUAGES[@]} + i))
         echo "  curl http://127.0.0.1:$port/hello/$lang"
     done
 done
